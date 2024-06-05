@@ -1,0 +1,14 @@
+go run main.go functions.go
+
+Invoke-RestMethod -Uri "http://localhost:8080/users" `
+                  -Method Get `
+                  -ContentType "application/json"
+
+Invoke-RestMethod -Uri "http://localhost:8080/users2" `
+                  -Method Get `
+                  -ContentType "application/json"
+
+Invoke-RestMethod -Uri "http://localhost:8080/users" `
+                  -Method Post `
+                  -ContentType "application/json" `
+                  -Body '{"id": 11, "name": "Vlado", "age": 24, "occupation": "Network Engineer"}'
