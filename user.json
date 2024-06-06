@@ -1,12 +1,13 @@
 [
-    {"id":"1", "name":"Aleksa", "age":23, "occupation":"Software internship"},
-    {"id":"2", "name":"Anastasija", "age":19, "occupation":"Student"},
-    {"id":"3", "name":"Isidora", "age":22, "occupation":"Embeded internship"},
-    {"id":"4", "name":"Dimitrije", "age":24, "occupation":"Cook"},
-    {"id":"5", "name":"Marija", "age":29, "occupation":"Software tester"},
-    {"id":"6", "name":"Nemanja", "age":25, "occupation":"Backend developer"},
-    {"id":"7", "name":"Nikola", "age":26, "occupation":"Frontend developer"},
-    {"id":"8", "name":"Mladen", "age":26, "occupation":"Backend developer"},
-    {"id":"9", "name":"Dejan", "age":26, "occupation":"Devops"},
-    {"id":"10", "name":"Milos", "age":24, "occupation":"Testing internship"}
+    {"id":"1", "name":"Alekso", "age":23, "occupation":"Softver"},
+    {"id":"2", "name":"Nidzo", "age":22, "occupation":"Data Centar"},
+    {"id":"3", "name":"Neco", "age":24, "occupation":"Data Centar"},
+    {"id":"4", "name":"Aleks", "age":24, "occupation":"Data Centar i network"},
+    {"id":"5", "name":"Comi", "age":24, "occupation":"Network"},
+    {"id":"6", "name":"Ema", "age":23, "occupation":"Network"},
+    {"id":"7", "name":"Aco", "age":23, "occupation":"App Sec"},
+    {"id":"8", "name":"Branko", "age":23, "occupation":"App Sec"},
+    {"id":"9", "name":"Oli", "age":27, "occupation":"CCNA"},
+    {"id":"10", "name":"Toyaga", "age":23, "occupation":"Dzoni Test"},
+    {"id":"11", "name":"Vladou", "age":24, "occupation":"Dzabalebaros"}
 ]
