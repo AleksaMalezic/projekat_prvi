@@ -1,0 +1,28 @@
+komanda da se uradi post novog json objekta u json file preko servera
+Invoke-RestMethod -Uri "http://localhost:8080/users" `
+                  -Method Post `
+                  -ContentType "application/json" `
+                  -Body '{"id": "11", "name": "Vladou", "age": 24, "occupation": "CCNA Montenegro"}'
+
+komanda da se uzme lista sa servera
+Invoke-RestMethod -Uri "http://localhost:8080/users" `
+                  -Method Get `
+                  -ContentType "application/json"
+
+komanda da se uzme odredjeni red sa liste 
+Invoke-RestMethod -Uri "http://localhost:8080/users/2" `
+                  -Method Get `
+                  -ContentType "application/json"
+
+komanda da se izmeni jedan red
+Invoke-RestMethod -Uri "http://localhost:8080/users/10" `
+                   -Method Put `
+                   -ContentType "application/json" `
+                   -Body '{"id": "11", "name": "Vladou", "age": 24, "occupation": "Dzabalebaros"}'
+
+komanda da se izmeni nesto u jednom redu
+Invoke-RestMethod -Uri "http://localhost:8080/users/11" `
+                   -Method Patch `
+                   -ContentType "application/json" `
+                   -Body '{"name": "Vladouoooouuuu", "age": 999, "occupation": "Nitkov"}' 
+

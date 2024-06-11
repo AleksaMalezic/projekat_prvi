@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
+	//"github.com/golang-jwt/jwt"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,9 +22,13 @@ var (
 	page     = "/users"
 	pageid   = "/users/:id"
 	host     = "localhost:8080"
+
+	secretKey = []byte("secret-key")
 )
 
 func main() {
+
+	//token
 
 	//otvaranje json fajla
 	binaryFile := jsonToBinary(jsonFile)
@@ -101,13 +107,17 @@ func patchUser(c *gin.Context) {
 		return
 	}
 
+	fmt.Printf("Updated fields: %+v\n", updatedFields)
+
 	for i, a := range users {
 		if a.ID == id {
 			if name, ok := updatedFields["name"].(string); ok {
 				users[i].Name = name
 			}
-			if age, ok := updatedFields["age"].(int); ok {
-				users[i].Age = age
+			if age, ok := updatedFields["age"].(float64); ok {
+				// Debug print
+				fmt.Printf("Age type: %T, value: %v\n", updatedFields["age"], updatedFields["age"])
+				users[i].Age = int(age)
 			}
 			if occupation, ok := updatedFields["occupation"].(string); ok {
 				users[i].Occupation = occupation

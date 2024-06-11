@@ -8,6 +8,5 @@
     {"id":"7", "name":"Aco", "age":23, "occupation":"App Sec"},
     {"id":"8", "name":"Branko", "age":23, "occupation":"App Sec"},
     {"id":"9", "name":"Oli", "age":27, "occupation":"CCNA"},
-    {"id":"10", "name":"Toyaga", "age":23, "occupation":"Dzoni Test"},
-    {"id":"11", "name":"Vladou", "age":24, "occupation":"Dzabalebaros"}
+    {"id":"10", "name":"Toyaga", "age":23, "occupation":"Dzoni Test"}
 ]
