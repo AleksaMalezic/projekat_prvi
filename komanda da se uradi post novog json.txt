@@ -26,3 +26,17 @@ Invoke-RestMethod -Uri "http://localhost:8080/users/11" `
                    -ContentType "application/json" `
                    -Body '{"name": "Vladouoooouuuu", "age": 999, "occupation": "Nitkov"}' 
 
+zahtev za jwt token
+$loginResponse = Invoke-RestMethod -Uri "http://localhost:8080/login" `
+                                   -Method Post `
+                                   -ContentType "application/json" `
+                                   -Body '{"Username": "Aleksa", "Password": "ryko123"}'
+$token = $loginResponse.token
+
+$headers = @{
+    "Authorization" = "Bearer $token"
+}
+$response = Invoke-RestMethod -Uri "http://localhost:8080/users" `
+                              -Method Get `
+                              -Headers $headers
+$response
