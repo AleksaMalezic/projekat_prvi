@@ -1,12 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	_ "github.com/lib/pq"
 )
 
 // ovo cu posle da zamenim json fajlom
@@ -23,23 +25,36 @@ type User struct {
 }
 
 var (
-	users         []user
-	jsonFile      = "user.json"
-	page          = "/users"
-	pageid        = "/users/:id"
-	host          = "localhost:8080"
+	//api
+	users    []user
+	jsonFile = "user.json"
+	page     = "/users"
+	pageid   = "/users/:id"
+	host     = "localhost:8080"
+	//jwt token credentials
 	dummyUsername = "Aleksa"
 	dummyPassword = "ryko123"
 	secretKey     = []byte("secret-key")
+	//database
+	dbHost = "localhost"
+	dbPort = 5432
+	dbUser = "postgres"
+	dbPass = "nikadpijan123"
+	dbName = "projekat_prvi"
+	db     *sql.DB
 )
 
 func main() {
-	//otvaranje json fajla
-	binaryFile := jsonToBinary(jsonFile)
-	defer binaryFile.Close()
 
-	//prebacivanje bin fajla u stukturu
-	binToStruct(binaryFile, &users)
+	//otvaranje baze podataka
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", dbHost, dbPort, dbUser, dbPass, dbName)
+	var err error
+	db, err = sql.Open("postgres", psqlconn)
+	checkDbError(err)
+	defer db.Close()
+	err = db.Ping()
+	checkDbError(err)
+	fmt.Println("connected db")
 
 	//HTTP requests
 	router := gin.Default()
@@ -62,6 +77,12 @@ func main() {
 	}
 
 	router.Run(host)
+}
+
+func checkDbError(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
 
 func authMiddleware() gin.HandlerFunc {
@@ -95,19 +116,45 @@ func authMiddleware() gin.HandlerFunc {
 
 // funkcije za http zahteve
 func getUsers(c *gin.Context) {
+	rows, err := db.Query("select id, name, age, occupation from public.users")
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer rows.Close()
+
+	var users []user
+	for rows.Next() {
+		var u user
+		if err := rows.Scan(&u.ID, &u.Name, &u.Age, &u.Occupation); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		users = append(users, u)
+	}
+
+	if err := rows.Err(); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.IndentedJSON(http.StatusOK, users)
 }
 
 func getUserByID(c *gin.Context) {
 	id := c.Param("id")
 
-	for _, a := range users {
-		if a.ID == id {
-			c.IndentedJSON(http.StatusOK, a)
-			return
+	var u user
+	err := db.QueryRow("select id, name, age, occupation from public.users where id=$1", id).Scan(&u.ID, &u.Name, &u.Age, &u.Occupation)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		} else {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
+		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+	c.IndentedJSON(http.StatusOK, u)
 }
 
 func postUsers(c *gin.Context) {
@@ -118,7 +165,13 @@ func postUsers(c *gin.Context) {
 		return
 	}
 
-	users = append(users, newUser)
+	insertDynStmt := `insert into "users"("name", "age", "occupation") values($1, $2, $3) returning id`
+	err := db.QueryRow(insertDynStmt, newUser.Name, newUser.Age, newUser.Occupation).Scan(&newUser.ID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	c.IndentedJSON(http.StatusCreated, newUser)
 }
 
@@ -131,14 +184,23 @@ func putUser(c *gin.Context) {
 		return
 	}
 
-	for i, a := range users {
-		if a.ID == id {
-			users[i] = updatedUser
-			c.IndentedJSON(http.StatusOK, updatedUser)
-			return
-		}
+	updateStmt := `update public.users set name=$1, age=$2, occupation=$3 where id=$4`
+	res, err := db.Exec(updateStmt, updatedUser.Name, updatedUser.Age, updatedUser.Occupation, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "user is not found"})
+	}
+
+	c.IndentedJSON(http.StatusOK, updatedUser)
 }
 
 func patchUser(c *gin.Context) {
@@ -149,40 +211,53 @@ func patchUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
 		return
 	}
-
-	//fmt.Printf("Updated fields: %+v\n", updatedFields)
-
-	for i, a := range users {
-		if a.ID == id {
-			if name, ok := updatedFields["name"].(string); ok {
-				users[i].Name = name
-			}
-			if age, ok := updatedFields["age"].(float64); ok {
-				// Debug print
-				fmt.Printf("Age type: %T, value: %v\n", updatedFields["age"], updatedFields["age"])
-				users[i].Age = int(age)
-			}
-			if occupation, ok := updatedFields["occupation"].(string); ok {
-				users[i].Occupation = occupation
-			}
-			c.IndentedJSON(http.StatusOK, users[i])
-			return
-		}
+	if len(updatedFields) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No fields to update"})
+		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+
+	updateStmt := "update public.users set "
+	args := []interface{}{}
+	argID := 1
+
+	for field, value := range updatedFields {
+		updateStmt += fmt.Sprintf("%s=$%d, ", field, argID)
+		args = append(args, value)
+		argID++
+	}
+	updateStmt = updateStmt[:len(updateStmt)-2] + " where id=$" + fmt.Sprintf("%d", argID)
+	args = append(args, id)
+
+	_, err := db.Exec(updateStmt, args...)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "user updated successfully"})
 }
 
 func deleteUser(c *gin.Context) {
 	id := c.Param("id")
 
-	for i, a := range users {
-		if a.ID == id {
-			users = append(users[:i], users[i+1:]...)
-			c.IndentedJSON(http.StatusOK, gin.H{"message": "user deleted"})
-			return
-		}
+	deleteStmt := `delete from public.users where id = $1`
+	res, err := db.Exec(deleteStmt, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "user not found"})
+
+	rowsAffected, err := res.RowsAffected()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "user not found"})
+		return
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "user deleted"})
 }
 
 // funkcije za token
