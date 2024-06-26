@@ -1,18 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	_ "github.com/lib/pq"
-)
-
-var (
-	dummyEmail    = "Aleksa"
-	dummyPassword = "Lola123"
 )
 
 func checkDbError(err error) {
@@ -31,7 +26,7 @@ func authMiddleware() gin.HandlerFunc {
 		}
 		tokenString = tokenString[len("Bearer "):]
 
-		err := verifyToken(tokenString)
+		err := verifyToken(c, tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			c.Abort()
@@ -48,18 +43,36 @@ func loginHandler(c *gin.Context) {
 		return
 	}
 
-	if u.Email != dummyEmail || u.UserPassword != dummyPassword {
+	user, err := getUserByEmail(u.Email)
+	if err != nil {
+		log.Printf("Error fetching user: %v", err)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
-	token, err := createToken(u.UserName)
+	if u.UserPassword != user.UserPassword {
+		log.Printf("Password comparison failed")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		return
+	}
+
+	token, err := createToken(user.UserName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create token"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"token": token})
+}
+
+func getUserByEmail(email string) (User, error) {
+	var user User
+	query := "SELECT id, email, password, name FROM public.user WHERE email=$1"
+	err := db.QueryRow(query, email).Scan(&user.UserID, &user.Email, &user.UserPassword, &user.UserName)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }
 
 func createToken(username string) (string, error) {
@@ -72,20 +85,26 @@ func createToken(username string) (string, error) {
 	return token.SignedString(secretKey)
 }
 
-func verifyToken(tokenString string) error {
+func verifyToken(c *gin.Context, tokenString string) error {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unexpected signing method"})
+			c.Abort()
+			return nil, nil
 		}
 		return secretKey, nil
 	})
 
 	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		c.Abort()
 		return err
 	}
 
 	if !token.Valid {
-		return fmt.Errorf("invalid token")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+		c.Abort()
+		return err
 	}
 
 	return nil

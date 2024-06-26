@@ -22,11 +22,6 @@ type NodeWithChildren struct {
 	NodeChildren []NodeWithChildren `json:"children,omitempty"`
 }
 
-var (
-	organisationalUnitPage   = "/organisational_unit"
-	organisationalUnitPageId = "/organisational_unit/:id"
-)
-
 func getChildrenRecursive(db *sql.DB, parentID int) ([]NodeWithChildren, error) {
 	rows, err := db.Query("SELECT id, name, parent_id, created_at FROM public.organisational_unit WHERE parent_id = $1", parentID)
 	if err != nil {

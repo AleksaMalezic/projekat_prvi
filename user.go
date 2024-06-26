@@ -15,11 +15,6 @@ type User struct {
 	UserPassword string `json:"password"`
 }
 
-var (
-	userPage   = "/user"
-	userPageId = "/user/:id"
-)
-
 // funkcije za http zahteve
 func getUsers(c *gin.Context) {
 	rows, err := db.Query("select id, name, email from public.user")

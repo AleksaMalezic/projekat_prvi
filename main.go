@@ -34,22 +34,26 @@ func main() {
 	router := gin.Default()
 	router.POST("/api/login", loginHandler)
 
-	protected := router.Group("/api")
+	unprotected := router.Group("/api/organisational_unit")
+	unprotected.Use()
+	{
+		unprotected.GET("", getNodes)
+		unprotected.GET("/:id", getNodeById)
+		unprotected.POST("", postNode)
+		unprotected.PUT("/:id", putNode)
+		unprotected.PATCH("/:id", patchNode)
+		unprotected.DELETE("/:id", deleteNode)
+	}
+
+	protected := router.Group("/api/user")
 	protected.Use(authMiddleware())
 	{
-		protected.GET(organisationalUnitPage, getNodes)
-		protected.GET(organisationalUnitPageId, getNodeById)
-		protected.POST(organisationalUnitPage, postNode)
-		protected.PUT(organisationalUnitPageId, putNode)
-		protected.PATCH(organisationalUnitPageId, patchNode)
-		protected.DELETE(organisationalUnitPageId, deleteNode)
-
-		protected.GET(userPage, getUsers)
-		protected.GET(userPageId, getUserByID)
-		protected.POST(userPage, postUser)
-		protected.PUT(userPageId, putUser)
-		protected.PATCH(userPageId, patchUser)
-		protected.DELETE(userPageId, deleteUser)
+		protected.GET("", getUsers)
+		protected.GET("/:id", getUserByID)
+		protected.POST("", postUser)
+		protected.PUT("/:id", putUser)
+		protected.PATCH("/:id", patchUser)
+		protected.DELETE("/:id", deleteUser)
 
 		protected.GET("/protected", ProtectedHandler)
 	}
