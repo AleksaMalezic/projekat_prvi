@@ -8,13 +8,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	_ "github.com/lib/pq"
-)
 
-func checkDbError(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+	"database/sql"
+	"fmt"
+)
 
 func authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -24,7 +21,15 @@ func authMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		tokenString = tokenString[len("Bearer "):]
+
+		// Proverite da li token počinje sa "Bearer "
+		if len(tokenString) < 7 || tokenString[:7] != "Bearer " {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header"})
+			c.Abort()
+			return
+		}
+
+		tokenString = tokenString[7:] // Uklonite prefiks "Bearer "
 
 		err := verifyToken(c, tokenString)
 		if err != nil {
@@ -112,4 +117,19 @@ func verifyToken(c *gin.Context, tokenString string) error {
 
 func ProtectedHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Welcome to the protected route!"})
+}
+
+func initDB() {
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", dbHost, dbPort, dbUser, dbPass, dbName)
+	var err error
+	db, err = sql.Open("postgres", psqlconn)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+	fmt.Println("Connected to database")
 }

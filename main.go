@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -22,14 +21,8 @@ var (
 )
 
 func main() {
-	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", dbHost, dbPort, dbUser, dbPass, dbName)
-	var err error
-	db, err = sql.Open("postgres", psqlconn)
-	checkDbError(err)
+	initDB()
 	defer db.Close()
-	err = db.Ping()
-	checkDbError(err)
-	fmt.Println("connected db")
 
 	router := gin.Default()
 	router.POST("/api/login", loginHandler)
